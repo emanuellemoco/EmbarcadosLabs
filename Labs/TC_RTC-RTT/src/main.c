@@ -6,7 +6,7 @@
 
 // Configuracoes do led same70
 #define LED_PIO           PIOC                 // periferico que controla o LED
-#define LED_PIO_ID        12                  // ID do periférico PIOC (controla LED)
+#define LED_PIO_ID        12                  // ID do perifï¿½rico PIOC (controla LED)
 #define LED_PIO_IDX       8                    // ID do LED no PIO
 #define LED_PIO_IDX_MASK  (1 << LED_PIO_IDX)   // Mascara para CONTROLARMOS o LED
 
@@ -50,6 +50,8 @@ volatile char flag_tc = 0; //TC
 volatile Bool f_rtt_alarme = false; //RTT
 volatile char flag_rtc = 0; // RTC
 
+volatile char flag_tc2 = 0; //TC2
+
 
 void LED_init(int estado);
 void TC_init(Tc * TC, int ID_TC, int TC_CHANNEL, int freq);
@@ -64,7 +66,7 @@ void TC1_Handler(void){
 	volatile uint32_t ul_dummy;
 
 	/****************************************************************
-	* Devemos indicar ao TC que a interrupção foi satisfeita.
+	* Devemos indicar ao TC que a interrupï¿½ï¿½o foi satisfeita.
 	******************************************************************/
 	ul_dummy = tc_get_status(TC0, 1);
 
@@ -73,6 +75,21 @@ void TC1_Handler(void){
 
 	/** Muda o estado do LED */
 	flag_tc = 1;
+}
+
+void TC4_Handler(void){
+	volatile uint32_t ul_dummy;
+
+	/****************************************************************
+	* Devemos indicar ao TC que a interrupï¿½ï¿½o foi satisfeita.
+	******************************************************************/
+	ul_dummy = tc_get_status(TC1, 1);
+
+	/* Avoid compiler warning */
+	UNUSED(ul_dummy);
+
+	/** Muda o estado do LED */
+	flag_tc2 = 1;
 }
 
 void RTT_Handler(void)
@@ -125,6 +142,17 @@ void pisca_led(int n, int t){
 		pio_clear(LED1_PIO, LED1_PIO_IDX_MASK);
 		delay_ms(t);
 		pio_set(LED1_PIO, LED1_PIO_IDX_MASK);
+		delay_ms(t);
+
+		
+	}
+}
+
+void pisca_led2(int n, int t){
+	for (int i=0;i<n;i++){
+		pio_clear(LED_PIO, LED_PIO_IDX_MASK);
+		delay_ms(t);
+		pio_set(LED_PIO, LED_PIO_IDX_MASK);
 		delay_ms(t);
 	}
 }
@@ -192,7 +220,7 @@ void TC_init(Tc * TC, int ID_TC, int TC_CHANNEL, int freq){
 	uint32_t ul_sysclk = sysclk_get_cpu_hz();
 
 	/* Configura o PMC */
-	/* O TimerCounter é meio confuso
+	/* O TimerCounter ï¿½ meio confuso
 	o uC possui 3 TCs, cada TC possui 3 canais
 	TC0 : ID_TC0, ID_TC1, ID_TC2
 	TC1 : ID_TC3, ID_TC4, ID_TC5
@@ -200,13 +228,13 @@ void TC_init(Tc * TC, int ID_TC, int TC_CHANNEL, int freq){
 	*/
 	pmc_enable_periph_clk(ID_TC);
 
-	/** Configura o TC para operar em  4Mhz e interrupçcão no RC compare */
+	/** Configura o TC para operar em  4Mhz e interrupï¿½cï¿½o no RC compare */
 	tc_find_mck_divisor(freq, ul_sysclk, &ul_div, &ul_tcclks, ul_sysclk);
 	tc_init(TC, TC_CHANNEL, ul_tcclks | TC_CMR_CPCTRG);
 	tc_write_rc(TC, TC_CHANNEL, (ul_sysclk / ul_div) / freq);
 
-	/* Configura e ativa interrupçcão no TC canal 0 */
-	/* Interrupção no C */
+	/* Configura e ativa interrupï¿½cï¿½o no TC canal 0 */
+	/* Interrupï¿½ï¿½o no C */
 	NVIC_EnableIRQ((IRQn_Type) ID_TC);
 	tc_enable_interrupt(TC, TC_CHANNEL, TC_IER_CPCS);
 
@@ -253,7 +281,9 @@ int main (void)
 	LED_init(0);
 	
 	 /** Configura timer TC0, canal 1 */
-	TC_init(TC0, ID_TC1, 1, 2);
+	TC_init(TC0, ID_TC1, 1, 4);
+	TC_init(TC1, ID_TC4, 1, 10);
+	
 	
 	// Inicializa RTT com IRQ no alarme.
 	f_rtt_alarme = true;
@@ -268,11 +298,19 @@ int main (void)
 	
   /* Insert application code here, after the board has been initialized. */
 	while(1) {
+		
 		//TC:
 		if(flag_tc){
 			pisca_led(1,10);
 			flag_tc = 0;
 		}
+		
+		//TC2:
+		if(flag_tc2){
+			pisca_led2(1,10);
+			flag_tc2 = 0;
+		}
+		
 		
 		//RTT:
 		if (f_rtt_alarme){
@@ -294,6 +332,8 @@ int main (void)
 		pisca_led_RTC(5, 200);
 		flag_rtc = 0;
 	}
+	
+	
 	pmc_sleep(SAM_PM_SMODE_SLEEP_WFI);
 	}
 }
