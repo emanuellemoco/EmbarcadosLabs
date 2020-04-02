@@ -49,6 +49,7 @@ typedef struct  {
 volatile char flag_tc = 0; //TC
 volatile Bool f_rtt_alarme = false; //RTT
 volatile char flag_rtc = 0; // RTC
+volatile char flag_rtc2 = 0; //RTC2
 
 volatile char flag_tc2 = 0; //TC2
 
@@ -119,19 +120,23 @@ void RTC_Handler(void)
 	*  ou Alarm
 	*/
 	if ((ul_status & RTC_SR_SEC) == RTC_SR_SEC) {
+		//ENTROU AQUI
 		rtc_clear_status(RTC, RTC_SCCR_SECCLR);
+		flag_rtc2 = 1;
 	}
 	
 	/* Time or date alarm */
 	if ((ul_status & RTC_SR_ALARM) == RTC_SR_ALARM) {
-			rtc_clear_status(RTC, RTC_SCCR_ALRCLR);
-      flag_rtc = 1;
+		rtc_clear_status(RTC, RTC_SCCR_ALRCLR);
+    	flag_rtc = 1;
 	}
 	
 	rtc_clear_status(RTC, RTC_SCCR_ACKCLR);
 	rtc_clear_status(RTC, RTC_SCCR_TIMCLR);
 	rtc_clear_status(RTC, RTC_SCCR_CALCLR);
 	rtc_clear_status(RTC, RTC_SCCR_TDERRCLR);
+	
+
 }
 
 /*
@@ -208,6 +213,7 @@ void RTC_init(Rtc *rtc, uint32_t id_rtc, calendar t, uint32_t irq_type){
 
 	/* Ativa interrupcao via alarme */
 	rtc_enable_interrupt(rtc,  irq_type);
+
 }
 
 static float get_time_rtt(){
@@ -262,7 +268,35 @@ static void RTT_init(uint16_t pllPreScale, uint32_t IrqNPulses)
 	NVIC_EnableIRQ(RTT_IRQn);
 	rtt_enable_interrupt(RTT, RTT_MR_ALMIEN);
 }
+void get_time (char hora[3], char minuto[3], char segundo[3], char horario[9]){
+	horario[0] = hora[0];
+	horario[1] = hora[1];
+	horario[2] = ':';
+	horario[3] = minuto[0];
+	horario[4] = minuto[1];
+	horario[5] = ':';
+	horario[6] = segundo[0];
+	horario[7] = segundo[1];
 
+}
+
+void show_time(calendar rtc_initial){
+	//Exiba a hora no formato (HH:MM:SS) no display OLED
+	char hora[3];
+	char minuto[3];
+	char segundo[3];
+
+	sprintf(hora,"%lu", rtc_initial.hour);
+	sprintf(minuto,"%lu", rtc_initial.minute);
+	sprintf(segundo,"%lu", rtc_initial.seccond);
+
+	char teste [] = {segundo[0]};
+	char horario[] = { hora[0],hora[1], ':', minuto[0], minuto[1], ':', segundo[0], segundo[1]};
+	//gfx_mono_draw_filled_circle(104, 16, 16, GFX_PIXEL_SET, GFX_WHOLE);
+	gfx_mono_draw_string(horario, 1,16, &sysfont);
+	gfx_mono_draw_filled_circle(95, 16, 16, GFX_PIXEL_SET, GFX_WHOLE);
+
+}
 
 int main (void)
 {
@@ -274,11 +308,12 @@ int main (void)
 	gfx_mono_ssd1306_init();
   
   // Escreve na tela um circulo e um texto
-	gfx_mono_draw_filled_circle(20, 16, 16, GFX_PIXEL_SET, GFX_WHOLE);
-  gfx_mono_draw_string("Mundo", 50,16, &sysfont);
+	//gfx_mono_draw_filled_circle(20, 16, 16, GFX_PIXEL_SET, GFX_WHOLE);
+	//gfx_mono_draw_string("Mundo", 50,16, &sysfont);
   
 	/* Configura Leds */
-	LED_init(0);
+	LED_init(0);	
+
 	
 	 /** Configura timer TC0, canal 1 */
 	TC_init(TC0, ID_TC1, 1, 4);
@@ -290,47 +325,59 @@ int main (void)
 	
 	/** Configura RTC */
 	calendar rtc_initial = {2018, 3, 19, 12, 15, 45 ,1};
-	RTC_init(RTC, ID_RTC, rtc_initial, RTC_IER_ALREN);
+	
+
+	
+//	RTC_init(RTC, ID_RTC, rtc_initial, RTC_IER_ALREN );
+	RTC_init(RTC, ID_RTC, rtc_initial, RTC_IER_ALREN | RTC_IER_SECEN);
 
 	/* configura alarme do RTC */
 	rtc_set_date_alarm(RTC, 1, rtc_initial.month, 1, rtc_initial.day);
 	rtc_set_time_alarm(RTC, 1, rtc_initial.hour, 1, rtc_initial.minute, 1, rtc_initial.seccond + 20);
 	
+	gfx_mono_draw_string("          ", 1,16, &sysfont);
   /* Insert application code here, after the board has been initialized. */
 	while(1) {
 		
-		//TC:
-		if(flag_tc){
-			pisca_led(1,10);
-			flag_tc = 0;
-		}
-		
-		//TC2:
-		if(flag_tc2){
-			pisca_led2(1,10);
-			flag_tc2 = 0;
-		}
-		
-		
-		//RTT:
-		if (f_rtt_alarme){
-      
-      /*
-       * IRQ apos 4s -> 8*0.5
-       */
-      uint16_t pllPreScale = (int) (((float) 32768) / 4.0);
-      uint32_t irqRTTvalue = 8;
-      
-      // reinicia RTT para gerar um novo IRQ
-      RTT_init(pllPreScale, irqRTTvalue);         
-      
-      f_rtt_alarme = false;
+	//TC:
+	if(flag_tc){
+		pisca_led(1,10);
+		flag_tc = 0;
 	}
+		
+	//TC2:
+	if(flag_tc2){
+		pisca_led2(1,10);
+		flag_tc2 = 0;
+	}
+		
+
+	//RTT:
+	if (f_rtt_alarme){
+	
+	/*
+	* IRQ apos 4s -> 8*0.5
+	*/
+	uint16_t pllPreScale = (int) (((float) 32768) / 4.0);
+	uint32_t irqRTTvalue = 8;
+	
+	// reinicia RTT para gerar um novo IRQ
+	RTT_init(pllPreScale, irqRTTvalue);         
+	
+	f_rtt_alarme = false;
+}
 	
 	//RTC:
 	if(flag_rtc){
 		pisca_led_RTC(5, 200);
 		flag_rtc = 0;
+	}
+
+	if(flag_rtc2){
+		rtc_get_time(RTC, &rtc_initial.hour, &rtc_initial.minute, &rtc_initial.seccond);
+		flag_rtc2 = 0;
+		show_time(rtc_initial);
+
 	}
 	
 	
