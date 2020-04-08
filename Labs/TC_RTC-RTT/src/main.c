@@ -281,11 +281,18 @@ void get_time (char hora[3], char minuto[3], char segundo[3], char horario[9]){
 }
 
 void show_time(calendar rtc_initial){
+// rtc_get_time(RTC, &h, &m, &s);
+// sprintf(b, ¨%2d : %2d : %2d¨, h, m, s);
+// char b[512];
+// int h; m; s;
+
+
 	//Exiba a hora no formato (HH:MM:SS) no display OLED
 	char hora[3];
 	char minuto[3];
 	char segundo[3];
 
+	//pode fazer so um sprintf
 	sprintf(hora,"%lu", rtc_initial.hour);
 	sprintf(minuto,"%lu", rtc_initial.minute);
 	sprintf(segundo,"%lu", rtc_initial.seccond);
