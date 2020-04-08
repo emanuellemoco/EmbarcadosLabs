@@ -268,40 +268,16 @@ static void RTT_init(uint16_t pllPreScale, uint32_t IrqNPulses)
 	NVIC_EnableIRQ(RTT_IRQn);
 	rtt_enable_interrupt(RTT, RTT_MR_ALMIEN);
 }
-void get_time (char hora[3], char minuto[3], char segundo[3], char horario[9]){
-	horario[0] = hora[0];
-	horario[1] = hora[1];
-	horario[2] = ':';
-	horario[3] = minuto[0];
-	horario[4] = minuto[1];
-	horario[5] = ':';
-	horario[6] = segundo[0];
-	horario[7] = segundo[1];
-
-}
 
 void show_time(calendar rtc_initial){
 // rtc_get_time(RTC, &h, &m, &s);
-// sprintf(b, ¨%2d : %2d : %2d¨, h, m, s);
-// char b[512];
-// int h; m; s;
-
 
 	//Exiba a hora no formato (HH:MM:SS) no display OLED
-	char hora[3];
-	char minuto[3];
-	char segundo[3];
+	char b[512];
 
-	//pode fazer so um sprintf
-	sprintf(hora,"%lu", rtc_initial.hour);
-	sprintf(minuto,"%lu", rtc_initial.minute);
-	sprintf(segundo,"%lu", rtc_initial.seccond);
+ 	sprintf(b, "%2d : %2d : %2d", rtc_initial.hour, rtc_initial.minute, rtc_initial.seccond);
 
-	char teste [] = {segundo[0]};
-	char horario[] = { hora[0],hora[1], ':', minuto[0], minuto[1], ':', segundo[0], segundo[1]};
-	//gfx_mono_draw_filled_circle(104, 16, 16, GFX_PIXEL_SET, GFX_WHOLE);
-	gfx_mono_draw_string(horario, 1,16, &sysfont);
-	gfx_mono_draw_filled_circle(95, 16, 16, GFX_PIXEL_SET, GFX_WHOLE);
+    gfx_mono_draw_string(b, 10,16, &sysfont);
 
 }
 
