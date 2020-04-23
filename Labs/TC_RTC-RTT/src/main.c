@@ -1,3 +1,4 @@
+///TC RTC E RTT
 #include <asf.h>
 
 #include "gfx_mono_ug_2832hsweg04.h"
@@ -144,10 +145,7 @@ void RTC_Handler(void)
  */
 void pisca_led(int n, int t){
 	for (int i=0;i<n;i++){
-		pio_clear(LED1_PIO, LED1_PIO_IDX_MASK);
-		delay_ms(t);
-		pio_set(LED1_PIO, LED1_PIO_IDX_MASK);
-		delay_ms(t);
+		
 
 		
 	}
@@ -310,7 +308,6 @@ int main (void)
 	calendar rtc_initial = {2018, 3, 19, 12, 15, 45 ,1};
 	
 
-	
 //	RTC_init(RTC, ID_RTC, rtc_initial, RTC_IER_ALREN );
 	RTC_init(RTC, ID_RTC, rtc_initial, RTC_IER_ALREN | RTC_IER_SECEN);
 
@@ -352,7 +349,7 @@ int main (void)
 	
 	//RTC:
 	if(flag_rtc){
-		pisca_led_RTC(5, 200);
+		pisca_led_RTC(5, 200); // 20 segundos 
 		flag_rtc = 0;
 	}
 
