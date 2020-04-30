@@ -58,6 +58,12 @@ typedef struct {
 QueueHandle_t xQueueTouch;
 
 
+
+#include "icones/lavagem.h"
+
+const tImage lavagem = { image_data_lavagem, 120, 75, 8 };
+
+
 /************************************************************************/
 /* handler/callbacks                                                    */
 /************************************************************************/
@@ -351,21 +357,13 @@ void task_lcd(void){
   draw_button_new(but4);
 
   t_but botoes[] = {but0, but1, but2, but3, but4};
-  // int i = 0;
-  // int cont = 0;
-  // for (i int botoes){
-  //   t_but botoes[i] = {.width = 120, .height = 75,  
-  //               .colorOn = COLOR_TOMATO, .colorOff = COLOR_BLACK, 
-  //               .x = ILI9488_LCD_WIDTH/2, .y = 40 + cont };
-  // botoes[i].status = 1;
-  // draw_button_new(botoes[i]);
-
-  //   cont += 100;
-  //   i++;
 
   // struct local para armazenar msg enviada pela task do mxt
   touchData touch;
 
+  // desenha imagem lavagem na posicao X=80 e Y=150
+  ili9488_draw_pixmap(0, 0, lavagem.width, lavagem.height, lavagem.data);
+  
   while (true) {
     if (xQueueReceive( xQueueTouch, &(touch), ( TickType_t )  500 / portTICK_PERIOD_MS)) {
       
@@ -413,6 +411,8 @@ int main(void)
   
   /* Start the scheduler. */
   vTaskStartScheduler();
+
+  
 
   while(1){
 
