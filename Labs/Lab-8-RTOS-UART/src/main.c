@@ -6,52 +6,57 @@
 #include "conf_board.h"
 #include <string.h>
 
-// Configuracoes dos LEDs
-#define LED_PIO           PIOC                 // periferico que controla o LED
-#define LED_PIO_ID        12                   // ID do perif�rico PIOC (controla LED)
-#define LED_PIO_IDX       8                    // ID do LED no PIO
-#define LED_PIO_IDX_MASK  (1 << LED_PIO_IDX)   // Mascara para CONTROLARMOS o LED
+#define TASK_MONITOR_STACK_SIZE            (2048/sizeof(portSTACK_TYPE))
+#define TASK_MONITOR_STACK_PRIORITY        (tskIDLE_PRIORITY)
+#define TASK_LED_STACK_SIZE                (1024/sizeof(portSTACK_TYPE))
+#define TASK_LED_STACK_PRIORITY            (tskIDLE_PRIORITY)
 
 
-#define LED1_PIO			PIOA
-#define LED1_PIO_ID			ID_PIOA
-#define LED1_PIO_IDX		0
-#define LED1_PIO_IDX_MASK	(1 << LED1_PIO_IDX)
+#define TASK_LED1_STACK_SIZE (1024/sizeof(portSTACK_TYPE))
+#define TASK_LED1_STACK_PRIORITY (tskIDLE_PRIORITY)
 
-#define LED2_PIO			PIOC
-#define LED2_PIO_ID			ID_PIOC
-#define LED2_PIO_IDX		30
-#define LED2_PIO_IDX_MASK	(1 << LED2_PIO_IDX)
+#define TASK_UARTRX_STACK_SIZE (1024/sizeof(portSTACK_TYPE))
+#define TASK_UARTRX_STACK_PRIORITY (tskIDLE_PRIORITY)
 
-#define LED3_PIO			PIOB
-#define LED3_PIO_ID			ID_PIOB
-#define LED3_PIO_IDX		2
-#define LED3_PIO_IDX_MASK	(1 << LED3_PIO_IDX)
+#define TASK_EXECUTE_STACK_SIZE (1024/sizeof(portSTACK_TYPE))
+#define TASK_EXECUTE_STACK_PRIORITY (tskIDLE_PRIORITY)
+
+// Config LED
+#define LED_PIO PIOC						// periferico que controla o LED
+#define LED_PIO_ID 12						// ID do perif�rico PIOC (controla LED)
+#define LED_PIO_IDX 8						// ID do LED no PIO
+#define LED_PIO_IDX_MASK (1 << LED_PIO_IDX) // Mascara para CONTROLARMOS o LED
+
+#define LED1_PIO PIOA
+#define LED1_PIO_ID ID_PIOA
+#define LED1_PIO_IDX 0
+#define LED1_PIO_IDX_MASK (1 << LED1_PIO_IDX)
+
+#define LED2_PIO PIOC
+#define LED2_PIO_ID ID_PIOC
+#define LED2_PIO_IDX 30
+#define LED2_PIO_IDX_MASK (1 << LED2_PIO_IDX)
+
+#define LED3_PIO PIOB
+#define LED3_PIO_ID ID_PIOB
+#define LED3_PIO_IDX 2
+#define LED3_PIO_IDX_MASK (1 << LED3_PIO_IDX)
+
+#define BUT3_PIO PIOA
+#define BUT3_PIO_ID 10
+#define BUT3_PIO_IDX 19
+#define BUT3_PIO_IDX_MASK (1u << BUT3_PIO_IDX)
+
+#define BUT2_PIO PIOC
+#define BUT2_PIO_ID 12
+#define BUT2_PIO_IDX 31
+#define BUT2_PIO_IDX_MASK (1u << BUT2_PIO_IDX)
 
 #define BUT1_PIO            PIOD
 #define BUT1_PIO_ID         16
 #define BUT1_PIO_IDX        28
 #define BUT1_PIO_IDX_MASK   (1u << BUT1_PIO_IDX)
 
-#define TASK_MONITOR_STACK_SIZE            (2048/sizeof(portSTACK_TYPE))
-#define TASK_MONITOR_STACK_PRIORITY        (tskIDLE_PRIORITY)
-#define TASK_LED_STACK_SIZE                (1024/sizeof(portSTACK_TYPE))
-#define TASK_LED_STACK_PRIORITY            (tskIDLE_PRIORITY)
-#define TASK_LED1_STACK_SIZE                (1024/sizeof(portSTACK_TYPE))
-#define TASK_LED1_STACK_PRIORITY            (tskIDLE_PRIORITY)
-
-#define TASK_UARTRX_STACK_SIZE            (2048/sizeof(portSTACK_TYPE))
-#define TASK_UARTRX_STACK_PRIORITY        (tskIDLE_PRIORITY)
-
-#define TASK_EXECUTE_STACK_SIZE            (2048/sizeof(portSTACK_TYPE))
-#define TASK_EXECUTE_STACK_PRIORITY        (tskIDLE_PRIORITY)
-
-/** Semaforo a ser usado pela task led 
-    tem que ser var global! */
-SemaphoreHandle_t xSemaphore;
-
-QueueHandle_t xQueueChar;
-QueueHandle_t xQueueCommand;
 
 extern void vApplicationStackOverflowHook(xTaskHandle *pxTask,
 		signed char *pcTaskName);
@@ -59,6 +64,38 @@ extern void vApplicationIdleHook(void);
 extern void vApplicationTickHook(void);
 extern void vApplicationMallocFailedHook(void);
 extern void xPortSysTickHandler(void);
+
+
+SemaphoreHandle_t xSemaphore;
+SemaphoreHandle_t xSemaphore2;
+SemaphoreHandle_t xSemaphore3;
+
+QueueHandle_t xQueueChar;
+QueueHandle_t xQueueCommand;
+
+
+/**                                                               
+* callback do botao                                               
+* libera semaforo: xSemaphore                                    
+*/
+void but1_callback(void){
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    printf("but1_callback \n");
+    xSemaphoreGiveFromISR(xSemaphore, &xHigherPriorityTaskWoken);
+    printf("semafaro tx \n");
+}
+void but2_callback(void){
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    printf("but2_callback \n");
+    xSemaphoreGiveFromISR(xSemaphore2, &xHigherPriorityTaskWoken);
+    printf("semafaro tx \n");
+}
+void but3_callback(void){
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    printf("but3_callback \n");
+    xSemaphoreGiveFromISR(xSemaphore3, &xHigherPriorityTaskWoken);
+    printf("semafaro tx \n");
+}
 
 /**
  * \brief Called if stack overflow during execution
@@ -72,17 +109,6 @@ extern void vApplicationStackOverflowHook(xTaskHandle *pxTask,
 	 */
 	for (;;) {
 	}
-}
-
-/**                                                               
-* callback do botao                                               
-* libera semaforo: xSemaphore                                    
-*/
-void but1_callback(void){
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    printf("but_callback \n");
-    xSemaphoreGiveFromISR(xSemaphore, &xHigherPriorityTaskWoken);
-    printf("semafaro tx \n");
 }
 
 /**
@@ -100,14 +126,6 @@ extern void vApplicationTickHook(void)
 {
 }
 
-void led_toggle(Pio *pio, const pio_type_t ul_type, const uint32_t ul_mask) {
-
-    if (pio_get(pio,ul_type,ul_mask)) pio_clear(pio, ul_mask);
-    else pio_set(pio,ul_mask);
-                
-}
-
-
 extern void vApplicationMallocFailedHook(void)
 {
 	/* Called if a call to pvPortMalloc() fails because there is insufficient
@@ -119,6 +137,12 @@ extern void vApplicationMallocFailedHook(void)
 	/* Force an assert. */
 	configASSERT( ( volatile void * ) NULL );
 }
+void led_toggle(Pio *pio, const pio_type_t ul_type, const uint32_t ul_mask) {
+
+	if (pio_get(pio,ul_type,ul_mask)) pio_clear(pio, ul_mask);
+	else pio_set(pio,ul_mask);
+				
+}
 
 /**
  * \brief This task, when activated, send every ten seconds on debug UART
@@ -128,12 +152,13 @@ static void task_monitor(void *pvParameters)
 {
 	static portCHAR szList[256];
 	UNUSED(pvParameters);
+    const TickType_t xDelay = 1500 / portTICK_PERIOD_MS;
 
 	for (;;) {
-		printf("--- task ## %u\n\r", (unsigned int)uxTaskGetNumberOfTasks());
+		//printf("--- task ## %u\n", (unsigned int)uxTaskGetNumberOfTasks());
 		vTaskList((signed portCHAR *)szList);
-		printf(szList);
-		vTaskDelay(3000);
+		//printf(szList);
+		vTaskDelay(xDelay);
 	}
 }
 
@@ -162,74 +187,99 @@ static void task_led(void *pvParameters) {
 
   for (;;) {
     if( xSemaphoreTake(xSemaphore, ( TickType_t ) 500) == pdTRUE ){
-      led_toggle(LED_PIO,LED_PIO_ID, LED_PIO_IDX_MASK);
+        led_toggle(LED_PIO,LED_PIO_ID,LED_PIO_IDX_MASK);
     }
   }
 }
-static void task_led1(void *pvParameters)
-{
-	pmc_enable_periph_clk(LED1_PIO_ID);
-	pio_configure(LED1_PIO, PIO_OUTPUT_0, LED1_PIO_IDX_MASK, PIO_DEFAULT);
-	/* Block for 2000ms. = 2s */ 
-    const TickType_t xDelay = 3000 / portTICK_PERIOD_MS;  //3s
-	const TickType_t xDelayLed = 200 / portTICK_PERIOD_MS;
 
-	for (;;) {
-		for (int i = 0; i < 5; i++)
-		{
-			pio_clear(LED1_PIO, LED1_PIO_IDX_MASK) ; // liga o led
+static void task_led2(void *pvParameters) {
+  /* We are using the semaphore for synchronisation so we create a binary
+  semaphore rather than a mutex.  We must make sure that the interrupt
+  does not attempt to use the semaphore before it is created! */
+  xSemaphore2 = xSemaphoreCreateBinary();
+
+  /* devemos iniciar a interrupcao no pino somente apos termos alocado
+  os recursos (no caso semaforo), nessa funcao inicializamos 
+  o botao e seu callback*/
+  /* init botão */
+  pmc_enable_periph_clk(BUT2_PIO_ID);
+  pio_configure(BUT2_PIO, PIO_INPUT, BUT2_PIO_IDX_MASK, PIO_PULLUP);
+  pio_handler_set(BUT2_PIO, BUT2_PIO_ID, BUT2_PIO_IDX_MASK, PIO_IT_FALL_EDGE, but2_callback);
+  pio_enable_interrupt(BUT2_PIO, BUT2_PIO_IDX_MASK);
+  NVIC_EnableIRQ(BUT2_PIO_ID);
+  NVIC_SetPriority(BUT2_PIO_ID, 4); // Prioridade 4
+
+  if (xSemaphore2 == NULL)
+    printf("falha em criar o semaforo \n");
+
+  for (;;) {
+    if( xSemaphoreTake(xSemaphore2, ( TickType_t ) 500) == pdTRUE ){
+        led_toggle(LED2_PIO,LED2_PIO_ID,LED2_PIO_IDX_MASK);
+    }
+  }
+}
+static void task_led3(void *pvParameters) {
+  /* We are using the semaphore for synchronisation so we create a binary
+  semaphore rather than a mutex.  We must make sure that the interrupt
+  does not attempt to use the semaphore before it is created! */
+  xSemaphore3 = xSemaphoreCreateBinary();
+
+  /* devemos iniciar a interrupcao no pino somente apos termos alocado
+  os recursos (no caso semaforo), nessa funcao inicializamos 
+  o botao e seu callback*/
+  /* init botão */
+  pmc_enable_periph_clk(BUT3_PIO_ID);
+  pio_configure(BUT3_PIO, PIO_INPUT, BUT3_PIO_IDX_MASK, PIO_PULLUP);
+  pio_handler_set(BUT3_PIO, BUT3_PIO_ID, BUT3_PIO_IDX_MASK, PIO_IT_FALL_EDGE, but3_callback);
+  pio_enable_interrupt(BUT3_PIO, BUT3_PIO_IDX_MASK);
+  NVIC_EnableIRQ(BUT3_PIO_ID);
+  NVIC_SetPriority(BUT3_PIO_ID, 4); // Prioridade 4
+
+  if (xSemaphore3 == NULL)
+    printf("falha em criar o semaforo \n");
+
+  for (;;) {
+    if( xSemaphoreTake(xSemaphore3, ( TickType_t ) 500) == pdTRUE ){
+        led_toggle(LED3_PIO,LED3_PIO_ID,LED3_PIO_IDX_MASK);
+    }
+  }
+}
+static void task_led1(void *pvParameters){
+
+
+	const TickType_t xDelay = 3000 / portTICK_PERIOD_MS;
+	const TickType_t xDelayLed = 200 / portTICK_PERIOD_MS;
+	while(1){
+		for (uint i=0; i<5; i++){
+			pio_clear(LED1_PIO, LED1_PIO_IDX_MASK);
 			vTaskDelay(xDelayLed);
-			pio_set(LED1_PIO, LED1_PIO_IDX_MASK); // apaga o led
+			pio_set(LED1_PIO, LED1_PIO_IDX_MASK);
 			vTaskDelay(xDelayLed);
 		}
 		vTaskDelay(xDelay);
 	}
+
+
 }
 
-void led_init(void){
-	//Ativa o PIO na qual o LED foi conectado
-	pmc_enable_periph_clk(LED_PIO_ID);
+
+led_init(){
 	pmc_enable_periph_clk(LED1_PIO_ID);
-	pmc_enable_periph_clk(LED2_PIO_ID);
-	pmc_enable_periph_clk(LED3_PIO_ID);
-	
-	//Inicializa cada PIO como saida
-	pio_set_output(LED_PIO, LED_PIO_IDX_MASK, 0, 0, 0);
 	pio_set_output(LED1_PIO, LED1_PIO_IDX_MASK, 0, 0, 0);
-	pio_set_output(LED2_PIO, LED2_PIO_IDX_MASK, 0, 0, 0);
-	pio_set_output(LED3_PIO, LED3_PIO_IDX_MASK, 0, 0, 0);
-}
 
+	pmc_enable_periph_clk(LED2_PIO_ID);
+	pio_set_output(LED2_PIO, LED2_PIO_IDX_MASK, 0, 0, 0);
+
+	pmc_enable_periph_clk(LED3_PIO_ID);
+	pio_set_output(LED3_PIO, LED3_PIO_IDX_MASK, 0, 0, 0);
+
+}
 
 /**
- * \brief Configure the console UART.
+ *  \brief FreeRTOS Real Time Kernel example entry point.
+ *
+ *  \return Unused (ANSI-C compatibility).
  */
-static void configure_console(void)
-{
-	const usart_serial_options_t uart_serial_options = {
-		.baudrate = CONF_UART_BAUDRATE,
-#if (defined CONF_UART_CHAR_LENGTH)
-		.charlength = CONF_UART_CHAR_LENGTH,
-#endif
-		.paritytype = CONF_UART_PARITY,
-#if (defined CONF_UART_STOP_BITS)
-		.stopbits = CONF_UART_STOP_BITS,
-#endif
-	};
-
-	/* Configure console UART. */
-	stdio_serial_init(CONF_UART, &uart_serial_options);
-
-	/* Specify that stdout should not be buffered. */
-#if defined(__GNUC__)
-	setbuf(stdout, NULL);
-#else
-	/* Already the case in IAR's Normal DLIB default configuration: printf()
-	 * emits one character at a time.
-	 */
-#endif
-}
-
 
 static void USART1_init(void){
   /* Configura USART1 Pinos */
@@ -267,64 +317,73 @@ static void USART1_init(void){
   NVIC_EnableIRQ(ID_USART1);
 }
 
+static void task_uartRX(void *pvParameters){
+	char letter;
+	char word[32];
+	int i = 0;
+	while(1){
+		if (xQueueReceive( xQueueChar, &letter, ( TickType_t )  100 / portTICK_PERIOD_MS)){
+			if (letter == '\n'){
+				//acabou a palavra
+				printf("enviou o comando\n");
+				word[i] = 0;
+				xQueueSend(xQueueCommand, &word, 0);
+				i = 0;
+			}
+			else {
+				word[i] = letter;
+				i++;
+			} 
+			//printf("Comando: %c\n",word[i]);
+		}
+
+	}
+}
+
+static void task_execute(void *pvParameters){
+	char command[32];
+	while(1){
+		if (xQueueReceive (xQueueCommand, &command, ( TickType_t )  100 / portTICK_PERIOD_MS)){
+			printf("recebeu comando \n");
+			if (strcmp(command, "led 0 toggle")==0) led_toggle(LED_PIO, LED_PIO_ID, LED_PIO_IDX_MASK);
+			else if (strcmp(command, "led 1 toggle")==0) led_toggle(LED1_PIO, LED1_PIO_ID, LED1_PIO_IDX_MASK);
+			else if (strcmp(command, "led 2 toggle")==0) led_toggle(LED2_PIO, LED2_PIO_ID, LED2_PIO_IDX_MASK);
+			else if (strcmp(command, "led 3 toggle")==0) led_toggle(LED3_PIO, LED3_PIO_ID, LED3_PIO_IDX_MASK);
+			else if (strcmp(command, "led 0 off")==0) pio_set(LED_PIO, LED_PIO_IDX_MASK);
+			else if (strcmp(command, "led 0 on")==0) pio_clear(LED_PIO, LED_PIO_IDX_MASK);
+			else if (strcmp(command, "led 1 off")==0) pio_set(LED1_PIO, LED1_PIO_IDX_MASK);
+			else if (strcmp(command, "led 1 on")==0) pio_clear(LED1_PIO, LED1_PIO_IDX_MASK);
+			else if (strcmp(command, "led 2 off")==0) pio_set(LED2_PIO, LED2_PIO_IDX_MASK);
+			else if (strcmp(command, "led 2 on")==0) pio_clear(LED2_PIO, LED2_PIO_IDX_MASK);
+			else if (strcmp(command, "led 3 off")==0) pio_set(LED3_PIO, LED3_PIO_IDX_MASK);
+			else if (strcmp(command, "led 3 on")==0) pio_clear(LED3_PIO, LED3_PIO_IDX_MASK);
+			
+}
+	}
+}
+
+
+
 void USART1_Handler(void){
-//Irá receber um caracter da uart e colocar ele na fila xQueueChar
   uint32_t ret = usart_get_status(USART1);
 
   BaseType_t xHigherPriorityTaskWoken = pdTRUE;
   char c;
-  printf("entrou em USART1_HANDLER \n");
 
   // Verifica por qual motivo entrou na interrupçcao?
   // RXRDY ou TXRDY
 
   //  Dados disponível para leitura
   if(ret & US_IER_RXRDY){
-      usart_serial_getchar(USART1, &c); //pega um char da serial e salva em c
-      printf("pegou:%c", c);
+	  usart_serial_getchar(USART1, &c); //pega um char da serial e salva em c
 	  xQueueSendFromISR(xQueueChar, &c, 0);
+
 
   // -  Transmissoa finalizada
   } else if(ret & US_IER_TXRDY){
 
   }
 }
-
-
-void task_uartRX(void){
-	printf("ENTROU NESSA PORRA \n ");
-	char letter;
-	char word[30];
-	int i =0;
-	while(1){ 
-		if (xQueueReceive( xQueueChar, &letter, ( TickType_t )  100 / portTICK_PERIOD_MS)){
-			if (letter== 0) {
-				word[i] = 0;
-				xQueueSend(xQueueCommand, &word, 0);
-				i = 0;
-			} else {
-				word[i] = letter;
-				i ++;
-			}
-			printf("mandando char %c", letter);
-		}
-	}
-}
-
-static void task_execute(void *pvParameters){
-	char command[30];
-	while(1){
-		if (xQueueReceive( xQueueCommand, &command, ( TickType_t )  100 / portTICK_PERIOD_MS)){
-			printf("ENTROU EM TASK EXECUTE \n ");
-			//strsdr
-			if (strcmp(command, "led 0") == 0) led_toggle(LED_PIO,LED_PIO_ID, LED_PIO_IDX_MASK);
-			else if (strcmp(command, "led 1") == 0) led_toggle(LED1_PIO,LED1_PIO_ID, LED1_PIO_IDX_MASK);
-			else if (strcmp(command, "led 2") == 0) led_toggle(LED2_PIO,LED2_PIO_ID, LED2_PIO_IDX_MASK);
-			else if (strcmp(command, "led 3") == 0) led_toggle(LED3_PIO,LED3_PIO_ID, LED3_PIO_IDX_MASK);
-		}
-	}
-}
-
 
 uint32_t usart1_puts(uint8_t *pstring){
     uint32_t i ;
@@ -333,23 +392,19 @@ uint32_t usart1_puts(uint8_t *pstring){
         if(uart_is_tx_empty(USART1))
             usart_serial_putchar(USART1, *(pstring+i++));
 }
-
-
-
+ 
 int main(void)
 {
-	// Criar a fila aqui!
+
+	// Criar a fila!
 	xQueueChar = xQueueCreate (30, sizeof(char));
-	xQueueCommand = xQueueCreate (5, sizeof(char)*30);
+	xQueueCommand = xQueueCreate (10, sizeof(char)*30);
 
 	/* Initialize the SAM system */
 	sysclk_init();
 	board_init();
 	led_init();
-	
-
 	/* Initialize the console uart */
-	//configure_console();
 	USART1_init();
 
 	/* Output demo information. */
@@ -369,22 +424,21 @@ int main(void)
 			TASK_LED_STACK_PRIORITY, NULL) != pdPASS) {
 		printf("Failed to create test led task\r\n");
 	}
-
-	if (xTaskCreate(task_led1, "Led", TASK_LED1_STACK_SIZE, NULL,
-			TASK_LED1_STACK_PRIORITY, NULL) != pdPASS) {
-		printf("Failed to create test led task\r\n");
-	}	
-
-	if (xTaskCreate(task_execute, "Led", TASK_EXECUTE_STACK_SIZE, NULL,
-			TASK_EXECUTE_STACK_PRIORITY, NULL) != pdPASS) {
-		printf("Failed to create test led execute\r\n");
+	if (xTaskCreate(task_led1, "Led1", TASK_LED1_STACK_SIZE, NULL, TASK_LED1_STACK_PRIORITY, NULL) != pdPASS) {
+		printf("Failed to create test led1 task\r\n");
 	}
-
-	if (xTaskCreate(task_uartRX, "Led", TASK_UARTRX_STACK_SIZE, NULL,
-		TASK_UARTRX_STACK_PRIORITY, NULL) != pdPASS) {
-		printf("Failed to create test task uartRX\r\n");
+	if (xTaskCreate(task_led2, "Led2", TASK_LED_STACK_SIZE, NULL, TASK_LED_STACK_PRIORITY, NULL) != pdPASS) {
+		printf("Failed to create test led2 task\r\n");
 	}
-
+	if (xTaskCreate(task_led3, "Led3", TASK_LED_STACK_SIZE, NULL, TASK_LED_STACK_PRIORITY, NULL) != pdPASS) {
+		printf("Failed to create test led3 task\r\n");
+	}
+		if (xTaskCreate(task_uartRX, "task_uartRX", TASK_UARTRX_STACK_SIZE, NULL, TASK_UARTRX_STACK_PRIORITY, NULL) != pdPASS) {
+		printf("Failed to create task_uartRX\r\n");
+	}
+		if (xTaskCreate(task_execute, "task_execut", TASK_EXECUTE_STACK_SIZE, NULL, TASK_EXECUTE_STACK_PRIORITY, NULL) != pdPASS) {
+		printf("Failed to create task_execut\r\n");
+	}
 
 	/* Start the scheduler. */
 	vTaskStartScheduler();
