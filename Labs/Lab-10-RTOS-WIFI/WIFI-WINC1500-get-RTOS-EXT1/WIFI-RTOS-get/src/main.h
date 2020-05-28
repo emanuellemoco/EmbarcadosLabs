@@ -50,7 +50,7 @@ extern "C" {
 /** Wi-Fi Settings */
 #define MAIN_WLAN_SSID                    "iPhone de Emanuelle" /**< Destination SSID */
 #define MAIN_WLAN_AUTH                    M2M_WIFI_SEC_WPA_PSK /**< Security manner */
-#define MAIN_WLAN_PSK                     "matheussexy" /**< Password for Destination SSID */
+#define MAIN_WLAN_PSK                     "password" /**< Password for Destination SSID */
 
 /** Using broadcast address for simplicity. */
 #define MAIN_SERVER_PORT                    (5000)
